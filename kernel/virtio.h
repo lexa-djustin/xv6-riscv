@@ -30,6 +30,10 @@
 #define VIRTIO_MMIO_DEVICE_DESC_LOW	0x0a0 // physical address for used ring, write-only
 #define VIRTIO_MMIO_DEVICE_DESC_HIGH	0x0a4
 
+#define VIRTIO_NET_QUEUE_RX 0
+#define VIRTIO_NET_QUEUE_TX 1
+#define VIRTIO_NET_QUEUE_CTRL 2
+
 // status register bits, from qemu virtio_config.h
 #define VIRTIO_CONFIG_S_ACKNOWLEDGE	1
 #define VIRTIO_CONFIG_S_DRIVER		2
@@ -44,6 +48,13 @@
 #define VIRTIO_F_ANY_LAYOUT         27
 #define VIRTIO_RING_F_INDIRECT_DESC 28
 #define VIRTIO_RING_F_EVENT_IDX     29
+
+// net device feature bits
+#define VIRTIO_NET_F_MAC           5
+#define VIRTIO_NET_F_STATUS        16
+#define VIRTIO_NET_F_CTRL_VQ       17
+#define VIRTIO_NET_F_CTRL_RX       18
+#define VIRTIO_NET_F_CTRL_MAC_ADDR 23
 
 // this many virtio descriptors.
 // must be a power of two.

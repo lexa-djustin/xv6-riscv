@@ -8,6 +8,8 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct socket;
+struct packet;
 
 // bio.c
 void            binit(void);
@@ -99,6 +101,7 @@ void            procinit(void);
 void            scheduler(void) __attribute__((noreturn));
 void            sched(void);
 void            sleep(void*, struct spinlock*);
+int             timer(int);
 void            userinit(void);
 int             wait(uint64);
 void            wakeup(void*);
@@ -185,5 +188,41 @@ void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
 
+// virtio_net.c
+void            virtio_net_init(void);
+void            virtio_net_handle_rx_interrupt(void);
+
+// rand.c
+uint32          rand();
+uint32          rand_range(int, int);
+
+// net.c
+void            process_net_queue();
+void            send_udp(struct packet *, int, int, int, unsigned int);
+void            send_tcp(struct socket *, uint8, void *, int);
+int             connect_tcp(struct socket *);
+void            send_tcp_payload(struct socket *);
+int             close_tcp(struct socket *socket);
+int             allocate_port(struct socket *);
+int             add_socket(struct socket *);
+void            release_socket(struct socket *);
+int             get_free_port();
+void            free_port(struct socket *);
+void*           packet_push(struct packet *, int);
+struct packet*  packet_alloc_tx();
+void            tcp_timer(uint);
+
+// socket.c
+int             socketalloc(struct file *, int);
+int             socketwrite(struct file *, uint64, int);
+int             socketread(struct file *, uint64, int);
+int             socketbind(struct file *, uint16);
+int             socketconnect(struct file *, uint16, int);
+int             socketclose(struct socket *);
+int             socket_add_to_rx_queue(struct socket *, void *, int);
+int             read_available_data(struct socket *, uint8 *, uint32);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
+#define NULL ((void *)0)
+#define READ_ONCE(x) (*(volatile typeof(x) *)&(x))

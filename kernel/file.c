@@ -79,6 +79,8 @@ fileclose(struct file *f)
     begin_op();
     iput(ff.ip);
     end_op();
+  } else if(ff.type == FD_SOCKET) {
+    socketclose(ff.socket);
   }
 }
 
@@ -122,6 +124,8 @@ fileread(struct file *f, uint64 addr, int n)
     if((r = readi(f->ip, 1, addr, f->off, n)) > 0)
       f->off += r;
     iunlock(f->ip);
+  } else if (f->type == FD_SOCKET) {
+    r = socketread(f, addr, n);
   } else {
     panic("fileread");
   }
@@ -145,18 +149,18 @@ filewrite(struct file *f, uint64 addr, int n)
     if(f->major < 0 || f->major >= NDEV || !devsw[f->major].write)
       return -1;
     ret = devsw[f->major].write(1, addr, n);
-  } else if(f->type == FD_INODE){
+  } else if(f->type == FD_INODE) {
     // write a few blocks at a time to avoid exceeding
     // the maximum log transaction size, including
     // i-node, indirect block, allocation blocks,
     // and 2 blocks of slop for non-aligned writes.
     // this really belongs lower down, since writei()
     // might be writing a device like the console.
-    int max = ((MAXOPBLOCKS-1-1-2) / 2) * BSIZE;
+    int max = ((MAXOPBLOCKS - 1 - 1 - 2) / 2) * BSIZE;
     int i = 0;
-    while(i < n){
+    while (i < n) {
       int n1 = n - i;
-      if(n1 > max)
+      if (n1 > max)
         n1 = max;
 
       begin_op();
@@ -166,13 +170,15 @@ filewrite(struct file *f, uint64 addr, int n)
       iunlock(f->ip);
       end_op();
 
-      if(r != n1){
+      if (r != n1) {
         // error from writei
         break;
       }
       i += r;
     }
     ret = (i == n ? n : -1);
+  } else if (f->type == FD_SOCKET) {
+    ret = socketwrite(f, addr, n);
   } else {
     panic("filewrite");
   }

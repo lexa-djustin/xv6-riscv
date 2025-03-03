@@ -46,7 +46,7 @@ usertrap(void)
   w_stvec((uint64)kernelvec);
 
   struct proc *p = myproc();
-  
+
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
@@ -166,6 +166,7 @@ clockintr()
   acquire(&tickslock);
   ticks++;
   wakeup(&ticks);
+  tcp_timer(ticks);
   release(&tickslock);
 }
 
@@ -190,6 +191,8 @@ devintr()
       uartintr();
     } else if(irq == VIRTIO0_IRQ){
       virtio_disk_intr();
+    } else if(irq == VIRTIO1_IRQ){
+      virtio_net_handle_rx_interrupt();
     } else if(irq){
       printf("unexpected interrupt irq=%d\n", irq);
     }

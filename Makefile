@@ -28,7 +28,20 @@ OBJS = \
   $K/sysfile.o \
   $K/kernelvec.o \
   $K/plic.o \
-  $K/virtio_disk.o
+  $K/virtio_disk.o \
+  $K/virtio_net.o \
+  $K/net.o \
+  $K/net_udp.o \
+  $K/net_arp.o \
+  $K/net_ipv4.o \
+  $K/net_icmp.o \
+  $K/net_tcp.o \
+  $K/net_ethernet.o \
+  $K/net_checksum.o \
+  $K/net_byteorder.o \
+  $K/net_packet.o \
+  $K/rand.o \
+  $K/socket.o
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -132,6 +145,10 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	$U/_client_udp\
+	$U/_client_tcp\
+	$U/_server_udp\
+	$U/_hello_world\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
@@ -153,13 +170,22 @@ QEMUGDB = $(shell if $(QEMU) -help | grep -q '^-gdb'; \
 	then echo "-gdb tcp::$(GDBPORT)"; \
 	else echo "-s -p $(GDBPORT)"; fi)
 ifndef CPUS
-CPUS := 3
+CPUS := 1
 endif
 
 QEMUOPTS = -machine virt -bios none -kernel $K/kernel -m 128M -smp $(CPUS) -nographic
 QEMUOPTS += -global virtio-mmio.force-legacy=false
 QEMUOPTS += -drive file=fs.img,if=none,format=raw,id=x0
 QEMUOPTS += -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+QEMUOPTS += -serial stdio -monitor unix:/tmp/qemu-monitor,server,nowait --trace "virt*" -D trace.log
+
+#QEMUOPTS += -netdev user,id=net0,hostfwd=tcp::8080-:80,hostfwd=udp::8080-:80
+#QEMUOPTS += -device virtio-net-device,netdev=net0,mac=52:54:00:12:34:56,bus=virtio-mmio-bus.1
+
+QEMUOPTS += -netdev tap,id=net0,ifname=tap2,script=script/tap_init.sh,downscript=no
+QEMUOPTS += -device virtio-net-device,netdev=net0,bus=virtio-mmio-bus.1
+
+QEMUOPTS += -object filter-dump,id=dump0,netdev=net0,file=./qemu-net-dump.pcap
 
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
@@ -170,4 +196,3 @@ qemu: $K/kernel fs.img
 qemu-gdb: $K/kernel .gdbinit fs.img
 	@echo "*** Now run 'gdb' in another window." 1>&2
 	$(QEMU) $(QEMUOPTS) -S $(QEMUGDB)
-

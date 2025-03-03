@@ -72,6 +72,7 @@ kalloc(void)
 
   acquire(&kmem.lock);
   r = kmem.freelist;
+
   if(r)
     kmem.freelist = r->next;
   release(&kmem.lock);

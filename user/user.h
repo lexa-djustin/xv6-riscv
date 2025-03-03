@@ -22,6 +22,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int socket(int);
+int connect(int, int, int);
+int bind(int, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

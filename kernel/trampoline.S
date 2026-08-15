@@ -12,8 +12,9 @@
 
 #include "riscv.h"
 #include "memlayout.h"
+#include "syscall.h"
 
-.section trampsec
+.section trampsec, "ax"
 .globl trampoline
 .globl usertrap
 trampoline:
@@ -94,15 +95,17 @@ uservec:
         # flush now-stale user entries from the TLB.
         sfence.vma zero, zero
 
-        # jump to usertrap(), which does not return
-        jr t0
+        # call usertrap()
+        jalr t0
 
 .globl userret
 userret:
-        # userret(pagetable)
-        # called by usertrapret() in trap.c to
-        # switch from kernel to user.
-        # a0: user page table, for satp.
+        # usertrap() returns here, with user satp in a0.
+        # return from kernel to user.
+
+        # flush icache, in case this is the first time
+        # we're running this proc on this hart.
+        fence.i
 
         # switch to the user page table.
         sfence.vma zero, zero
@@ -147,5 +150,12 @@ userret:
         ld a0, 112(a0)
         
         # return to user mode and user pc.
-        # usertrapret() set up sstatus and sepc.
+        # prepare_return() sets up sstatus and sepc.
         sret
+
+.align 4
+.globl sigtramp
+sigtramp:
+        li a7, SYS_sigreturn
+        ecall
+        unimp
